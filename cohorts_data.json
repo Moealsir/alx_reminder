@@ -1,0 +1,31 @@
+{
+  "19": {
+    "current_projects": [
+      {
+        "code": "299",
+        "name": "0x10. Python - Network #0",
+        "optional": "",
+        "progress": "195.74% done",
+        "start_time": "Mar 27, 2024 6:00 AM",
+        "deadline": "Apr 2, 2024 6:00 AM",
+        "time_left": "(in about 17 hours)",
+        "link": "https://intranet.alxswe.com/projects/299",
+        "type": "2ND"
+      },
+      {
+        "code": "275",
+        "name": "0x0F. Load balancer",
+        "optional": "",
+        "progress": "50% done",
+        "start_time": "Mar 28, 2024 6:00 AM",
+        "deadline": "Apr 2, 2024 6:00 AM",
+        "time_left": "(in about 17 hours)",
+        "link": "https://intranet.alxswe.com/projects/275",
+        "type": "1ST"
+      }
+    ],
+    "future_projects": []
+  },
+  "20": {},
+  "22": {}
+}

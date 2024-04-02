@@ -1,0 +1,13 @@
+{
+  "name": "alx_reminder",
+  "version": "1.0.0",
+  "description": "ALX Reminder Bot is a WhatsApp bot designed to send daily project reminders to ALX students. It also allows administrators to manage student data and provides users with options to interact with the bot.<br> ## Features",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Moealsir",
+  "license": "ISC"
+}
