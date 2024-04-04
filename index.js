@@ -4,8 +4,10 @@ const fs = require('fs');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
+// Set the time zone to Qatar (Asia/Qatar)
+process.env.TZ = 'Asia/Qatar'; // Change time zone if needed
 
-// Save token location
+// Save token locally
 const client = new Client({
     authStrategy: new LocalAuth({
         dataPath: 'auth_db'
@@ -15,6 +17,7 @@ const client = new Client({
 
 client.on('ready', () => {
     console.log('Client is ready!');
+    client.sendMessage('97439900342@c.us', '*Server No:* `2`\n\nClient is ready!');
 });
 
 client.on('qr', qr => {
@@ -50,7 +53,7 @@ client.on('error', async (error) => {
 // ######################## Admin commands ##############################
 
 // Event listener for incoming messages
-const admins = ['249904305810@c.us', '94739900342@c.us'];
+const admins = ['249904305810@c.us', '97439900342@c.us'];
 
 // Event listener for incoming messages
 client.on('message', async message => {
@@ -60,20 +63,117 @@ client.on('message', async message => {
     // Check if the message is from an admin and the body is 'save'
     if (admins.includes(user) && body === 'save') {
         // Save student data
+		client.sendMessage(user, `*Saving data...*`)
         console.log(cohortsData);
         saveStudentData(studentsData);
-        console.log('Student data saved to students.json');
-    }
+		client.sendMessage(user, `*Scrapping data...*`)
+        // Execute the scraper after saving student data
+        executeScraper(user);
+		console.log('Loading students and cohort data...')
+		loadStudentsData();
+		loadCohortsData();
+		console.log('Loaded successfully.')
+    } else if (admins.includes(user) && body === 'scrap') {
+        // Execute the scraper immediately
+		client.sendMessage(user, `*Scrapping data...*`)
+        executeScraper(user);
+    } else if (admins.includes(user) && body === 'load') {
+		// Execute the load functions
+		console.log('Saving students data...')
+		saveStudentData(studentsData);
+		console.log('Loading students and cohort data...')
+		loadStudentsData();
+		loadCohortsData();
+		console.log('Loaded successfully.')
+		client.sendMessage(user, `*Data was loaded successfully.*`)
+	} else if (admins.includes(user) && body === 'students') {
+		// Construct a formatted string representing the student data
+		let formattedData = "*Data of Students:* \n\n";
+		Object.keys(studentsData).forEach(key => {
+			// Check if studentsData[key] and studentsData[key].number are defined
+			if (studentsData[key] && studentsData[key].number) {
+				// Remove '@c.us' and add '+' at the beginning of the number
+				const formattedNumber = `+${studentsData[key].number.replace('@c.us', '')}`;
+				formattedData += `Number: ${formattedNumber}, Cohort: ${studentsData[key].cohort}\n`;
+			} else {
+				// Handle the case where studentsData[key] or studentsData[key].number is undefined
+				formattedData += `Error: Missing data for student with key ${key}\n`;
+			}
+		});
+	
+		// Send the formatted data to the user only if it's not empty
+		if (formattedData.trim() !== "") {
+			client.sendMessage(user, formattedData);
+		} else {
+			client.sendMessage(user, formattedData);
+		}
+	} else if (body === 'stats') {
+		// Calculate the number of all students
+		const totalStudents = Object.keys(studentsData).length;
+
+		// Calculate the number of students in each cohort
+		const cohortCounts = {};
+		Object.values(studentsData).forEach(student => {
+			const cohort = student.cohort;
+			cohortCounts[cohort] = (cohortCounts[cohort] || 0) + 1;
+		});
+
+		// Construct a formatted string representing the statistics
+		let statsMessage = `*Statistics*\n\n`;
+		statsMessage += `Total number of students: ${totalStudents}\n\n`;
+		statsMessage += `*For each cohort:*\n\n`;
+		Object.keys(cohortCounts).forEach(cohort => {
+			statsMessage += `- Cohort ${cohort}: ${cohortCounts[cohort]}\n`;
+		});
+
+		// Send the statistics to the user
+		client.sendMessage(user, statsMessage);
+	} else if (body === 'share') {
+		console.log('Sharing Bot number');
+		share(user);
+	}
 });
+
+function share(user) {
+    client.sendMessage(user, '*Share bot to your cohort group:* 👇');
+    client.getContactById('249965251782@c.us')
+        .then(bot => {
+            client.sendMessage(user, bot);
+        })
+        .catch(error => {
+            console.error('Error sharing bot:', error);
+        });
+}
+
+function contact_me(user) {
+    client.sendMessage(user, '*To contact me:* 👇');
+    client.getContactById('97439900342@c.us')
+        .then(bot => {
+            client.sendMessage(user, bot);
+        })
+        .catch(error => {
+            console.error('Error sharing bot:', error);
+        });
+}
+
 
 client.on('message', async (message) => {
     if (message.body.toLowerCase() === 'info') {
         // const chat = await message.getChat();
         const num_of_students = Object.keys(studentsData).length;
-        const developer = '+97439900342';
-        client.sendMessage(message.from, `*Bot commands:*\n\nTo start chat use: \`@\`\nFor current projects use: \`.\`\n`);
-        await client.sendMessage(message.from, `*Features:*\n\n- Get instant remind of current projects.\n- Modify your current cohort.\n\n*Future adds:*\n\n- Set time to get reminder\n\nNumber of users: ${num_of_students}`);
-        client.sendMessage(message.from, `This bot is developed by: *Moealsir*\n\nTo contact me: ${developer}`);
+        const contact = client.getContactById('249965251782@c.us');
+
+        client.sendMessage(message.from, `*Bot commands:*\n
+		- To start chat use: \`@\`
+		- For current projects use: \`.\`
+		- For statistics use: \`stats\`
+		- To share bot use: \`share\`\n
+		*Features:*\n
+		- Get instant remind of current projects.
+		- Modify your current cohort.\n
+		*Future adds:*\n
+		- Set time to get reminder`);
+        contact_me(message.from);
     }
 });
 
@@ -88,49 +188,79 @@ client.on('message', async (message) => {
 
 // Variable to track last save time
 let lastSaveTime = new Date();
+let me = '97439900342@c.us'
 
 // Function to check if it's time to save data (6:30 AM)
 function shouldSaveData() {
     const now = new Date();
     const targetTime = new Date(now);
     // Set the target time to 6:30 AM
-    targetTime.setHours(6, 28, 0, 0);
+    targetTime.setHours(16, 7, 0, 0);
 
-	console.log(now.getTime)
-	console.log(studentsData)
+        console.log(now.getTime)
+        console.log(studentsData)
     // Save data if the current time is after or equal to 6:30 AM and it's a new day
     return now >= targetTime && now.getDate() !== lastSaveTime.getDate();
 }
 
 
-// Function to save student data to students.json
-function saveStudentData(studentsData) {
-    fs.writeFileSync('students.json', JSON.stringify(studentsData, null, 2));
+async function saveStudentData(studentsData) {
+    try {
+        // Write studentsData to students.json
+        fs.writeFileSync('students.json', JSON.stringify(studentsData, null, 2));
+
+        console.log('Student data saved to students.json');
+    } catch (error) {
+        console.error('Error saving student data:', error);
+    }
 }
 
-// Schedule task to save student data every day at 6:30 AM
-cron.schedule('05 6 * * *', () => {
-    console.log(studentsData)
+function executeScraper(user) {
+    try {
+        // Execute the scraper
+        console.log('Executing scraper...');
+        exec('python3 scraper.py', (error) => {
+            if (error) {
+                console.error(`Error executing Python script: ${error}`);
+                return;
+            }
+			client.sendMessage(user, `*Scrapping was done successfully.*`)
+            console.log(`Scraper was done.`);
+        });
+    } catch (error) {
+        console.error('Error executing scraper:', error);
+    }
+}
+
+
+
+// Schedule task to save student data every hour
+cron.schedule('0 * * * *', () => {
     saveStudentData(studentsData);
-    console.log('Student data saved to students.json');
 });
 
-// Schedule task to execute Python program every day at 6:35 AM
-cron.schedule('03 6 * * *', () => {
-    console.log('scraping...')
-    exec('python scraper.py', (error, stdout, stderr) => {
+// Schedule task to saving and execute Python program every day at 6:35 AM
+cron.schedule('2 0,6,12,18 * * *', () => {
+	console.log('Saving...')
+    // console.log(studentsData)
+    saveStudentData(studentsData);
+    console.log('Scraping...')
+    exec('python3 scraper.py', (error) => {
         console.log('done')
+        console.log('Loading students and cohort data...')
+		loadStudentsData();
+		loadCohortsData();
+		console.log('Loaded successfully.')
         if (error) {
             console.error(`Error executing Python script: ${error}`);
             return;
         }
-        console.log(`Python script output: ${stdout}`);
     });
 
 });
 
 // Schedule task to send reminder projects to all users every 6 hours
-cron.schedule('0 1,7,13,19 * * *', () => {
+cron.schedule('5 0,6,12,18 * * *', () => {
     // Iterate over each user and send reminder projects
     Object.keys(studentsData).forEach(user => {
         const userCohort = studentsData[user].cohort;
@@ -143,6 +273,7 @@ cron.schedule('0 1,7,13,19 * * *', () => {
 
 // ############ schedule save and scrap projects ########################
 // ######################################################################
+
 
 
 // ##############################################################################################################################
@@ -207,7 +338,7 @@ if (Object.keys(studentsData).length === 0) {
     // Function to send projects to the user according to their cohort
     function sendProjectsByCohort(user, cohort) {
         const cohortData = cohortsData[cohort];
-        
+
         if (cohortData) {
             const currentProjects = cohortData.current_projects || [];
             const futureProjects = cohortData.future_projects || [];
@@ -271,7 +402,8 @@ let is_inside_menu = true;
 // Event listener for incoming messages
 client.on('message', async message => {
     const user = message.from;
-    
+
+
     if (message.body === '@' || message.body.toLowerCase() === 'bot') {
         if (!studentsData[user]) {
             // Set a flag to indicate that the user has been prompted to enter a cohort number
@@ -286,7 +418,7 @@ client.on('message', async message => {
     } else if (studentsData[user] && studentsData[user].prompted) {
         // Check if the user has been prompted to enter a cohort number
         const cohortNumber = parseInt(message.body);
-        if (!isNaN(cohortNumber) && cohortNumber >= 1 && cohortNumber <= 50) {
+        if (!isNaN(cohortNumber) && cohortNumber >= 1 && cohortNumber <= 22) {
             const newUser = { number: user, cohort: cohortNumber };
             studentsData[user] = newUser;
             if (shouldSaveData()) {
@@ -294,11 +426,12 @@ client.on('message', async message => {
                 lastSaveTime = new Date();
             }
             delete studentsData[user].prompted; // Remove the prompted flag
+            await share(user);
             client.sendMessage(user, `You entered cohort number: ${cohortNumber}. You will receive daily project reminders.`);
             // Set inside menu flag to true after user entered the cohort number
             is_inside_menu = true;
         } else {
-            client.sendMessage(user, 'Invalid cohort number. Please enter a number between 1 and 50.');
+            client.sendMessage(user, 'Invalid cohort number. Please enter a number between 1 and 22.');
         }
     } else {
         // User is already registered, process the choice if not inside the menu
@@ -342,5 +475,10 @@ client.on('message', async message => {
 // ######################################################################
 
 
-// initialize client
-client.initialize();
+client.initialize().catch(error => {
+    console.error('Error initializing client:', error);
+    // Save data or take other necessary actions
+    // For example:
+    saveStudentData(studentsData);
+    console.log('Student data saved successfully.');
+});

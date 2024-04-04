@@ -1,7 +1,6 @@
 
 from playwright.sync_api import sync_playwright
 import re
-import os
 import json
 from bs4 import BeautifulSoup
 
@@ -21,8 +20,7 @@ def login(email, password):
             page.fill('input#user_password', password)
             page.click('input[type=submit]')
             html_ = page.inner_html('main')
-            print("Login successful.")
-            os.system('clear')
+
 
             return html_
 
@@ -126,7 +124,6 @@ def extracting_details(panels):
     for panel in panels:
         no_project = 'None, enjoy the silence.\n'
         if 'None, enjoy the silence.' in panel.get_text():
-            print(no_project)
             break
         future_projects = extract_future_projects(panel)
         current_projects = extract_current_projects(panel)
@@ -156,10 +153,8 @@ def cohort_data(cohort, email, password):
             if all_projects['current_projects'] or all_projects['future_projects']:
                 return all_projects
             else:
-                print('No project now.')
                 return {}
         else:
-            print('No panels found.')
             return {}
     except KeyboardInterrupt:
         pass

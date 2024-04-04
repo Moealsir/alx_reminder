@@ -11,6 +11,7 @@ Daily Project Reminders: Receive daily reminders of current projects.
 3. Cancel the service.
 4. Check today's projects.
 5. Check info using: info.
+6. Check stats of the bot.
 
 ### Future adds:
 1. Cancel default reminder.
@@ -18,7 +19,7 @@ Daily Project Reminders: Receive daily reminders of current projects.
 
 
 
-## Install dependencies:
+### Install dependencies:
 
 bash
 
@@ -35,41 +36,8 @@ bash
 	cd alx_reminder
 
 	npm init
-	npm i nodemon
-	npm i fs-extra
-	npm install whatsapp-web.js
-	npm install qrcode-terminal
-	npm install node-cron
 
-## Set up authentication:
-
-    A directory with name auth_db will be created to save token.
-
-## Users:
-
-	user.json most be created with the emails and passwords inside it.
-
-## Run the bot:
-
-bash
-
-    npm start
-
-Usage
-
-    Starting a Chat:
-        Send @ or bot to start a chat with the bot.
-
-    Getting Project Reminders:
-        Send . to receive current project reminders.
-
-    Modifying Cohort Number:
-        If prompted, enter your new cohort number to modify it.
-
-    Cancelling the Service:
-        Enter 3 to cancel the service.
-
-Dependencies
+### Dependencies
 
     node-cron: For scheduling tasks.
     whatsapp-web.js: WhatsApp Web API library.
@@ -77,16 +45,34 @@ Dependencies
     fs: For file system operations.
     child_process: For executing Python scripts.
 
-Contributing
+### Set up authentication:
+
+    A directory with name auth_db will be created to save token.
+
+### Users:
+
+	user.json most be created with the emails and passwords inside it.
+
+## Run the bot:
+
+bash
+
+    npm start index.js
+
+## Usage:
+
+    Run 'info' to check all commands.
+
+## Contributing
 
 Contributions are welcome! Please follow the contribution guidelines.
-License
+## License
 
 This project is licensed under the MIT License.
 Author
 
     Moealsir
 
-Acknowledgements
+## Acknowledgements
 
 Special thanks to ALX for the inspiration behind this project.
