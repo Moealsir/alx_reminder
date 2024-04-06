@@ -63,13 +63,13 @@ client.on('message', async message => {
     // Check if the message is from an admin and the body is 'save'
     if (admins.includes(user) && body === 'save') {
         // Save student data
-                client.sendMessage(user, `*Saving data...*`)
-        console.log(cohortsData);
         saveStudentData(studentsData);
+        client.sendMessage(user, `*Data was saved.*`)
     } else if (admins.includes(user) && body === 'scrap') {
         // Execute the scraper immediately
-                client.sendMessage(user, `*Scrapping data...*`)
+        client.sendMessage(user, `*Scrapping data...*`)
         executeScraper(user);
+        client.sendMessage(user, `*Scrapping data...*`)
     } else if (admins.includes(user) && body === 'load') {
                 // Execute the load functions
                 console.log('Saving students data...')
@@ -127,6 +127,8 @@ client.on('message', async message => {
         }
 });
 
+// Define global variable to track if admin is sending a message
+let isAdminSendingMessage = false;
 
 // Event listener for messages
 client.on('message', async (message) => {
@@ -173,7 +175,7 @@ client.on('message', async (message) => {
 
 function share(user) {
     client.sendMessage(user, '*Share bot to your cohort group:* 👇');
-    client.getContactById('249965251782@c.us')
+    client.getContactById('249123163787@c.us')
         .then(bot => {
             client.sendMessage(user, bot);
         })
@@ -195,21 +197,10 @@ function contact_me(user) {
 
 
 client.on('message', async (message) => {
-    if (message.body.toLowerCase() === 'info') {
+    if (message.body.toLowerCase() === 'info' || message.body.toLowerCase() === 'usage') {
         // const chat = await message.getChat();
-        const num_of_students = Object.keys(studentsData).length;
-        const contact = client.getContactById('249965251782@c.us');
 
-        client.sendMessage(message.from, `*Bot commands:*\n
-                - To start chat use: \`@\`
-                - For current projects use: \`.\`
-                - For statistics use: \`stats\`
-                - To share bot use: \`share\`\n
-                *Features:*\n
-                - Get instant remind of current projects.
-                - Modify your current cohort.\n
-                *Future adds:*\n
-                - Set time to get reminder\n\n Only available for cohorts 19,20,22 now!\ncontact me if in another cohort`);
+        client.sendMessage(message.from, `*Bot commands:*\n\n- To start chat use: \`@\`\n- For current projects use: \`.\`\n- For statistics use: \`stats\`\n- To share bot use: \`share\`\n\n*Features:*\n\n- Get instant remind of current projects.\n- Modify your current cohort.\n\n*Future adds:*\n\n- Set time to get reminder\n\n Only available for cohorts 19,20,22 now!\ncontact me if in another cohort`);
         contact_me(message.from);
     }
 });
@@ -236,8 +227,7 @@ function shouldSaveData() {
     // Set the target time to 6:30 AM
     targetTime.setHours(16, 7, 0, 0);
 
-        console.log(now.getTime)
-        console.log(studentsData)
+        console.log(`New user signed up.`)
     // Save data if the current time is after or equal to 6:30 AM and it's a new day
     return now >= targetTime && now.getDate() !== lastSaveTime.getDate();
 }
@@ -281,7 +271,6 @@ cron.schedule('0 * * * *', () => {
 // Schedule task to saving and execute Python program every day at 6:35 AM
 cron.schedule('1 0,6,12,18 * * *', () => {
     console.log('Saving...')
-    // console.log(studentsData)
     saveStudentData(studentsData);
     console.log('Scraping...')
     exec('python3 scraper.py', (error) => {
@@ -306,10 +295,9 @@ cron.schedule('1 0,6,12,18 * * *', () => {
 });
 
 // Schedule task to send projects to each student every day at 4:27 PM
-cron.schedule('6 0,6,12,18 * * *', async () => {
+cron.schedule('5 0,6,12,18 * * *', async () => {
     // Extract students from the dictionary and convert them into a list
     const studentsList = Object.keys(studentsData);
-    console.log(studentsList)
 
     // Iterate over each student and send projects with a 5-second delay between each message
     for (let i = 0; i < studentsList.length; i++) {
@@ -440,8 +428,8 @@ client.on('message_create', message => {
         const userCohort = studentsData[message.from].cohort;
         if (userCohort) {
             sendProjectsByCohort(message.from, userCohort);
-        } else {
-            client.sendMessage('No Avaiable projects')
+        } else if (!userCohort){
+            client.sendMessage(message.from, 'You are new member, Please send `@` to start with bot')
         }
     }
 })
@@ -456,6 +444,12 @@ client.on('message_create', message => {
 // ######################################################################
 // ################## main @ and bot function ###########################
 
+
+// Define a function to handle the welcome message
+function sendWelcomeMessage(user) {
+    client.sendMessage(user, `Welcome to ALX! Please enter your cohort number:\n\n*Bot commands:*\n- To start chat use: \`@\`\n- For current projects use: \`.\`\n- For statistics use: \`stats\`\n- To share bot use: \`share\`\n\n*Features:*\n- Get instant remind of current projects.\n- Modify your current cohort.\n\n*Future adds:*\n- Set time to get reminder\n\n Only available for cohorts 19,20,22 now!`);
+}
+
 // Define a variable to track if the user is inside the menu
 let is_inside_menu = true;
 
@@ -464,10 +458,17 @@ client.on('message', async message => {
     const user = message.from;
 
 
-    if (message.body === '@' || message.body.toLowerCase() === 'bot') {
+    if (!studentsData[user]) {
+        // User is not registered yet, send the welcome message
+        sendWelcomeMessage(user);
+    } else if (message.body === '@' || message.body.toLowerCase() === 'bot') {
+        // User sends '@' or 'bot' command, prompt for choices
+        client.sendMessage(user, 'Welcome back to ALX! Please choose from the following options:\n1. Check which cohort you are in.\n2. Change cohort number.\n3. Cancel the service.');
+    } else if (message.body === '@' || message.body.toLowerCase() === 'bot') {
         if (!studentsData[user]) {
             // Set a flag to indicate that the user has been prompted to enter a cohort number
             studentsData[user] = { prompted: true };
+            client.sendMessage(message.from, `*Bot commands:*\n- To start chat use: \`@\`\n- For current projects use: \`.\`\n- For statistics use: \`stats\`\n- To share bot use: \`share\`\n\n*Features:*\n\n- Get instant remind of current projects.\n- Modify your current cohort.\n\n*Future adds:*\n\n- Set time to get reminder\n\n Only available for cohorts 19,20,22 now!`);
             client.sendMessage(user, 'Welcome to ALX! Please enter your cohort number:');
         } else {
             // User is already registered, prompt for choices
@@ -504,14 +505,14 @@ client.on('message', async message => {
                     client.sendMessage(user, `You are in cohort number: ${userCohort}`);
                     is_inside_menu = true;
                     break;
-                    case 2:
-                        // Change cohort number
-                        studentsData[user].prompted = true;
-                        client.sendMessage(user, 'Please enter your new cohort number:');
-                        break;
-                        case 3:
-                            // Cancel the service
-                            delete studentsData[user];
+                case 2:
+                    // Change cohort number
+                    studentsData[user].prompted = true;
+                    client.sendMessage(user, 'Please enter your new cohort number:');
+                    break;
+                case 3:
+                    // Cancel the service
+                    delete studentsData[user];
                     if (shouldSaveData()) {
                         saveStudentData(studentsData);
                         lastSaveTime = new Date();
@@ -519,17 +520,17 @@ client.on('message', async message => {
                     client.sendMessage(user, 'You have successfully canceled the service.');
                     is_inside_menu = true;
                     break;
-                    default:
-                        // No action for other messages
-                        break;
-                    }
-                    // Send "Invalid choice" message only if the choice is invalid
-                    if (![1, 2, 3].includes(choice)) {
-                        client.sendMessage(user, 'Invalid choice. Please choose a number between 1 and 3.');
-                    }
-                }
+                default:
+                    // No action for other messages
+                    break;
             }
-        });
+            // Send "Invalid choice" message only if the choice is invalid
+            if (![1, 2, 3].includes(choice)) {
+                client.sendMessage(user, 'Invalid choice. Please choose a number between 1 and 3.');
+            }
+        }
+    }
+});
 
 // ################## main @ and bot function ###########################
 // ######################################################################
