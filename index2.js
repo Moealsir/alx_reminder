@@ -3,7 +3,6 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const { group } = require('console');
 
 // Set the time zone to Qatar (Asia/Qatar)
 process.env.TZ = 'Asia/Qatar'; // Change time zone if needed
@@ -439,68 +438,102 @@ client.on('message_create', message => {
 // ######################################################################
 
 
+// ##############################################################################################################################
 
 
+// ######################################################################
+// ################## main @ and bot function ###########################
 
-// group test
-const groupData = {};
-function saveGroupData() {
-    console.log('Group data saved:', groupData);
+
+// Define a function to handle the welcome message
+function sendWelcomeMessage(user) {
+    client.sendMessage(user, `Welcome to ALX! Please enter your cohort number:\n\n*Bot commands:*\n- To start chat use: \`@\`\n- For current projects use: \`.\`\n- For statistics use: \`stats\`\n- To share bot use: \`share\`\n\n*Features:*\n- Get instant remind of current projects.\n- Modify your current cohort.\n\n*Future adds:*\n- Set time to get reminder\n\n Only available for cohorts 19,20,22 now!`);
 }
 
+// Define a variable to track if the user is inside the menu
+let is_inside_menu = true;
 
-client.on('message', async (message) => {
-    // Check if the message is from a group
-    const chat =    // Gets the chat object where the message was sent
-    client.pin(message)
+// Event listener for incoming messages
+client.on('message', async message => {
+    const user = message.from;
 
-    // const groupAdminsss = chat.getAdmins();  // Retrieves a list of group admins
-    // if (message.isGroupMsg) {
-    //     console.log('yes')
 
-    //     // Check if the sender's ID is in the list of group admins' IDs
-    //     const isSenderAdmin = groupAdminsss.some(admin => admin.id._serialized === message.author);
-
-    //     console.log('Is sender admin:', isSenderAdmin ? 'Yes' : 'No');
-    // } else {
-    //     console.log('no')
-    // }
+    if (!studentsData[user]) {
+        // User is not registered yet, send the welcome message
+        sendWelcomeMessage(user);
+    } else if (message.body === '@' || message.body.toLowerCase() === 'bot') {
+        // User sends '@' or 'bot' command, prompt for choices
+        client.sendMessage(user, 'Welcome back to ALX! Please choose from the following options:\n1. Check which cohort you are in.\n2. Change cohort number.\n3. Cancel the service.');
+    } else if (message.body === '@' || message.body.toLowerCase() === 'bot') {
+        if (!studentsData[user]) {
+            // Set a flag to indicate that the user has been prompted to enter a cohort number
+            studentsData[user] = { prompted: true };
+            client.sendMessage(message.from, `*Bot commands:*\n- To start chat use: \`@\`\n- For current projects use: \`.\`\n- For statistics use: \`stats\`\n- To share bot use: \`share\`\n\n*Features:*\n\n- Get instant remind of current projects.\n- Modify your current cohort.\n\n*Future adds:*\n\n- Set time to get reminder\n\n Only available for cohorts 19,20,22 now!`);
+            client.sendMessage(user, 'Welcome to ALX! Please enter your cohort number:');
+        } else {
+            // User is already registered, prompt for choices
+            client.sendMessage(user, 'Welcome back to ALX! Please choose from the following options:\n1. Check which cohort you are in.\n2. Change cohort number.\n3. Cancel the service.');
+        }
+        // Reset the inside menu flag when user interacts with '@'
+        is_inside_menu = false;
+    } else if (studentsData[user] && studentsData[user].prompted) {
+        // Check if the user has been prompted to enter a cohort number
+        const cohortNumber = parseInt(message.body);
+        if (!isNaN(cohortNumber) && cohortNumber >= 1 && cohortNumber <= 22) {
+            const newUser = { number: user, cohort: cohortNumber };
+            studentsData[user] = newUser;
+            if (shouldSaveData()) {
+                saveStudentData(studentsData);
+                lastSaveTime = new Date();
+            }
+            delete studentsData[user].prompted; // Remove the prompted flag
+            await share(user);
+            client.sendMessage(user, `You entered cohort number: ${cohortNumber}. You will receive daily project reminders.\n\n*Reminders time:*\n\n- 7 AM\n- 1 PM\n- 7 PM\n- 1 AM`);
+            // Set inside menu flag to true after user entered the cohort number
+            is_inside_menu = true;
+        } else {
+            client.sendMessage(user, 'Invalid cohort number. Please enter a number between 17 and 22.');
+        }
+    } else {
+        // User is already registered, process the choice if not inside the menu
+        if (!is_inside_menu) {
+            const choice = parseInt(message.body);
+            switch (choice) {
+                case 1:
+                    // Check which cohort the user is in
+                    const userCohort = studentsData[user].cohort;
+                    client.sendMessage(user, `You are in cohort number: ${userCohort}`);
+                    is_inside_menu = true;
+                    break;
+                case 2:
+                    // Change cohort number
+                    studentsData[user].prompted = true;
+                    client.sendMessage(user, 'Please enter your new cohort number:');
+                    break;
+                case 3:
+                    // Cancel the service
+                    delete studentsData[user];
+                    if (shouldSaveData()) {
+                        saveStudentData(studentsData);
+                        lastSaveTime = new Date();
+                    }
+                    client.sendMessage(user, 'You have successfully canceled the service.');
+                    is_inside_menu = true;
+                    break;
+                default:
+                    // No action for other messages
+                    break;
+            }
+            // Send "Invalid choice" message only if the choice is invalid
+            if (![1, 2, 3].includes(choice)) {
+                client.sendMessage(user, 'Invalid choice. Please choose a number between 1 and 3.');
+            }
+        }
+    }
 });
 
-// client.on('message', async (message) => {
-
-//     const groupAdmin = group.owner
-//     const user = message.from
-//     if (user === groupAdmin) {
-//         console.log(groupAdmin)
-//         console.log('yes')
-//     } else {
-//         console.log('no')
-//     }
-//     // if () {
-//         // console.log(client.groupAdmin)
-//     // }
-// });
-
-// client.on('message', async message => {
-//     const groupId = message.from;
-//     if (message.isGroupMsg && groupData[groupId] && groupData[groupId].cohort === null) {
-//         // Only process messages if cohort is not set and it's from an admin
-//         const groupAdmins = await client.getGroupAdmins(groupId);
-//         if (groupAdmins.map(admin => admin._serialized).includes(message.author)) {
-//             const potentialCohort = parseInt(message.body);
-//             if (!isNaN(potentialCohort) && potentialCohort >= 16 && potentialCohort <= 22) {
-//                 groupData[groupId].cohort = potentialCohort;
-//                 saveGroupData();
-//                 client.sendMessage(groupId, `Cohort number set to ${potentialCohort}.`);
-//                 console.log(`Cohort saved for ${groupData[groupId].groupName}: ${potentialCohort}`);
-//             } else {
-//                 client.sendMessage(groupId, 'Invalid cohort number. Please enter a number between 16 and 22.');
-//             }
-//         }
-//     }
-//     // Further message handling for other commands
-// });
+// ################## main @ and bot function ###########################
+// ######################################################################
 
 
 client.initialize().catch(error => {
